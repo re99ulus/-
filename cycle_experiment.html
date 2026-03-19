@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="pageTitle">반복 열내구성 평가</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; min-height: 100vh; }
+    
+    .top-banner { 
+      background: #E80E2B; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      gap: 40px; 
+      padding: 10px 20px; 
+      position: relative;
+    }
+    .banner-logo {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 30px;
+      width: auto;
+    }
+    .banner-hover {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .top-banner:hover .banner-hover {
+      opacity: 1;
+    }
+    .menu-item { color: white; padding: 20px 15px; cursor: pointer; position: relative; font-weight: 600; font-size: 1rem; transition: all 0.3s; text-shadow: 0 1px 2px rgba(0,0,0,0.2); z-index: 10; }
+    .menu-item:hover { transform: translateY(-2px); }
+    .menu-item.has-dropdown::after { content: ' ▼'; font-size: 0.7rem; margin-left: 5px; }
+    
+    .dropdown { position: absolute; top: 100%; left: 0; background: white; min-width: 160px; box-shadow: 0 8px 24px rgba(232,14,43,0.3); border-radius: 0 0 12px 12px; overflow: hidden; display: none; z-index: 100; }
+    .dropdown.show { display: block; animation: dropIn 0.2s ease; }
+    @keyframes dropIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .dropdown-item { padding: 14px 20px; color: #E80E2B; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+    .dropdown-item:hover { background: #E80E2B; color: white; padding-left: 25px; }
+    
+    .header { background: #c00b23; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .header-title { display: flex; flex-direction: column; }
+    .header h1 { color: white; font-size: 1.3rem; }
+    .header p { color: rgba(255,255,255,0.85); font-size: 0.85rem; margin-top: 3px; }
+    .header.hidden { display: none; }
+    
+    .auth-bar { display: flex; gap: 10px; align-items: center; }
+    .auth-bar input { padding: 8px 12px; border: none; border-radius: 4px; width: 150px; }
+    .auth-bar button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; background: white; color: #E80E2B; font-weight: 600; transition: all 0.2s; }
+    .auth-bar button:hover { background: #f0f0f0; transform: scale(1.05); }
+    .logout-btn { background: rgba(255,255,255,0.2) !important; color: white !important; }
+    .logout-btn:hover { background: rgba(255,255,255,0.3) !important; }
+    .edit-mode-btn { background: #4CAF50 !important; }
+    .data-btn { background: #2196F3 !important; margin-left: 5px; }
+    
+    .sub-nav { background: white; padding: 15px 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; border-bottom: 3px solid #E80E2B; }
+    .sub-nav.hidden { display: none; }
+    .sub-nav-btn { padding: 10px 20px; border: 2px solid #E80E2B; background: white; color: #E80E2B; font-weight: bold; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
+    .sub-nav-btn:hover { background: #fff5f5; }
+    .sub-nav-btn.active { background: #E80E2B; color: white; box-shadow: 0 4px 12px rgba(232,14,43,0.4); }
+    
+    .main { padding: 30px; max-width: 100%; margin: 0 auto; }
+    .view-title { text-align: center; margin-bottom: 30px; color: #E80E2B; font-size: 1.8rem; font-weight: 700; }
+    .editable-title { cursor: text; padding: 5px 10px; border-radius: 4px; transition: background 0.2s; }
+    .editable-title:hover { background: rgba(232,14,43,0.1); }
+    .editable-title:focus { outline: 2px solid #E80E2B; background: white; }
+    
+    .samples-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; }
+    .sample-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(232,14,43,0.1); transition: transform 0.3s, box-shadow 0.3s; position: relative; }
+    .sample-card:hover { transform: translateY(-5px); box-shadow: 0 8px 24px rgba(232,14,43,0.2); }
+    .sample-card.dragging { opacity: 0.5; transform: scale(1.05); }
+    .sample-card.drag-over { border: 2px dashed #E80E2B; }
+    .sample-card .drag-handle { 
+      position: absolute; 
+      top: 10px; 
+      right: 10px; 
+      width: 30px; 
+      height: 30px; 
+      background: rgba(0,0,0,0.3); 
+      border-radius: 4px; 
+      cursor: grab; 
+      display: none; 
+      align-items: center; 
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+    }
+    .edit-mode .sample-card .drag-handle { display: flex; }
+    .sample-card.selected { outline: 3px solid #4CAF50; transform: scale(1.02); }
+    .sample-card.selected::after {
+      content: '클릭됨';
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: #4CAF50;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .sample-header { background: linear-gradient(135deg, #E80E2B 0%, #c00b23 100%); color: white; padding: 14px; text-align: center; font-weight: bold; font-size: 1.1rem; }
+    .sample-content { padding: 15px; min-height: 200px; display: flex; align-items: center; justify-content: center; }
+    .sample-content img { max-width: 100%; max-height: 300px; border-radius: 8px; object-fit: contain; border: 2px solid #f0f0f0; }
+    .sample-content .placeholder { color: #999; text-align: center; padding: 40px; }
+    .sample-actions { padding: 10px 15px; border-top: 1px solid #eee; text-align: right; }
+    .upload-btn { padding: 8px 16px; background: #E80E2B; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+    .upload-btn:hover { background: #c00b23; transform: scale(1.05); }
+    .delete-btn { padding: 8px 16px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 8px; transition: all 0.2s; }
+    .delete-btn:hover { background: #444; transform: scale(1.05); }
+    
+    .content-area { display: none; }
+    .content-area.active { display: block; }
+    .content-placeholder { text-align: center; padding: 40px 20px; color: #666; position: relative; }
+    .content-placeholder h3 { margin-bottom: 20px; color: #E80E2B; font-size: 1.5rem; cursor: text; padding: 5px 10px; border-radius: 4px; }
+    .content-placeholder h3:hover { background: rgba(232,14,43,0.1); }
+    .content-placeholder p { cursor: text; padding: 5px 10px; border-radius: 4px; display: inline-block; min-width: 50px; }
+    .content-placeholder p:hover { background: rgba(0,0,0,0.05); }
+    .content-placeholder img { max-width: 90%; width: auto; height: auto; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); margin: 20px auto; display: block; cursor: pointer; }
+    .edit-mode .content-placeholder { outline: 2px dashed #E80E2B; padding: 10px; border-radius: 8px; }
+    
+    .condition-fullscreen { width: 100%; max-width: 100%; padding: 20px; display: flex; justify-content: center; align-items: center; }
+    .condition-fullscreen img { max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); cursor: pointer; }
+    .edit-mode .condition-fullscreen { outline: 3px dashed #4CAF50; }
+    
+    .split-layout { display: flex; gap: 30px; padding: 20px; min-height: 500px; }
+    .split-left { flex: 1.2; display: flex; align-items: center; justify-content: center; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; }
+    .split-left:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+    .split-left img { width: 100%; height: 100%; max-height: 600px; object-fit: contain; }
+    .split-left.empty { background: #f5f5f5; border: 3px dashed #ddd; min-height: 400px; }
+    .split-left.empty::after { content: '클릭하여 이미지 추가'; color: #999; font-size: 1.1rem; }
+    .edit-mode .split-left { outline: 3px dashed #4CAF50; }
+    .split-right { flex: 0.8; display: flex; flex-direction: column; }
+    .split-right textarea { width: 100%; height: 100%; min-height: 400px; padding: 20px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 1rem; line-height: 1.8; resize: none; font-family: inherit; }
+    .split-right textarea:focus { outline: none; border-color: #E80E2B; }
+    .edit-mode .split-right .editor-content { background: #fffef5; }
+    .content-area .editable-title { margin-bottom: 10px; }
+    
+    .editor-container { display: flex; flex-direction: column; height: 100%; }
+    .editor-toolbar {
+      display: none;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 10px;
+      background: #f5f5f5;
+      border: 2px solid #e0e0e0;
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+    }
+    .edit-mode .editor-toolbar { display: flex; }
+    .editor-toolbar button { padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; font-size: 14px; min-width: 36px; transition: all 0.2s; }
+    .editor-toolbar button:hover { background: #e0e0e0; }
+    .editor-toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .editor-toolbar button:disabled:hover { background: white; }
+    .editor-toolbar button.active { background: #E80E2B; color: white; border-color: #E80E2B; }
+    .editor-toolbar .toolbar-separator { width: 1px; height: 30px; background: #ddd; margin: 0 5px; }
+    .editor-toolbar select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+    .editor-content {
+      flex: 1;
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 0 0 12px 12px;
+      font-size: 1rem;
+      line-height: 1.8;
+      overflow-y: auto;
+      min-height: 400px;
+      background: white;
+    }
+    .editor-content:focus { outline: none; border-color: #E80E2B; }
+    .editor-content:empty::before { content: '향후 진행 내용을 입력하세요...'; color: #999; }
+    .edit-mode .editor-content { background: #fffef5; }
+    
+    .sample-text-editor {
+      margin-top: 30px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(232,14,43,0.1);
+      background: white;
+    }
+    .sample-editor-toolbar {
+      display: none;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .edit-mode .sample-editor-toolbar { display: flex; }
+    .sample-editor-toolbar button { padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; font-size: 14px; min-width: 36px; transition: all 0.2s; }
+    .sample-editor-toolbar button:hover { background: #e0e0e0; }
+    .sample-editor-toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .sample-editor-toolbar button:disabled:hover { background: white; }
+    .sample-editor-toolbar button.active { background: #E80E2B; color: white; border-color: #E80E2B; }
+    .sample-editor-toolbar .toolbar-separator { width: 1px; height: 30px; background: #ddd; margin: 0 5px; }
+    .sample-editor-toolbar select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+    .sample-editor-content {
+      padding: 20px;
+      font-size: 1rem;
+      line-height: 1.8;
+      overflow-y: auto;
+      min-height: 200px;
+      background: white;
+    }
+    .sample-editor-content:focus { outline: none; }
+    .sample-editor-content:empty::before { content: '샘플별 메모를 입력하세요...'; color: #999; }
+    .edit-mode .sample-editor-content { background: #fffef5; }
+    
+    .edit-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .edit-overlay.show { display: flex; }
+    .edit-modal {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .edit-modal h3 { margin-bottom: 15px; color: #E80E2B; }
+    .edit-modal textarea { width: 100%; height: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; font-family: inherit; }
+    .edit-modal-buttons { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
+    .edit-modal-buttons button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+    .edit-modal-buttons .save-btn { background: #E80E2B; color: white; }
+    .edit-modal-buttons .cancel-btn { background: #ccc; }
+    
+    .edit-mode-banner {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4CAF50;
+      color: white;
+      padding: 15px 30px;
+      border-radius: 30px;
+      font-weight: bold;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 999;
+      display: none;
+    }
+    .edit-mode-banner.show { display: block; }
+    
+    .hidden { display: none !important; }
+    input[type="file"] { display: none; }
+    
+    .lock-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      animation: fadeIn 0.8s ease;
+    }
+    .lock-screen.hide {
+      animation: fadeOut 0.5s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; visibility: hidden; }
+    }
+    .lock-container {
+      text-align: center;
+      padding: 60px 50px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 24px;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+      max-width: 400px;
+      width: 90%;
+    }
+    .lock-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 30px;
+      background: linear-gradient(135deg, #E80E2B 0%, #c00b23 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 40px rgba(232,14,43,0.4);
+    }
+    .lock-icon svg {
+      width: 36px;
+      height: 36px;
+      fill: white;
+    }
+    .lock-title {
+      color: #fff;
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+    .lock-subtitle {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.95rem;
+      margin-bottom: 35px;
+    }
+    .lock-input-group {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .lock-input {
+      width: 100%;
+      padding: 18px 24px;
+      font-size: 1.1rem;
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      color: white;
+      text-align: center;
+      letter-spacing: 8px;
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+    }
+    .lock-input::placeholder {
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.3);
+    }
+    .lock-input:focus {
+      outline: none;
+      border-color: #E80E2B;
+      background: rgba(255,255,255,0.1);
+      box-shadow: 0 0 30px rgba(232,14,43,0.2);
+    }
+    .lock-input.error {
+      border-color: #ff4444;
+      animation: shake 0.5s ease;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .lock-btn {
+      width: 100%;
+      padding: 18px 32px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #E80E2B 0%, #c00b23 100%);
+      border: none;
+      border-radius: 14px;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 30px rgba(232,14,43,0.35);
+      margin-top: 10px;
+    }
+    .lock-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(232,14,43,0.5);
+    }
+    .lock-btn:active {
+      transform: translateY(0);
+    }
+    .lock-error {
+      color: #ff6b6b;
+      font-size: 0.85rem;
+      margin-top: 15px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .lock-error.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="lock-screen" id="lockScreen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#1a1a1a;display:flex;align-items:center;justify-content:center;z-index:99999;">
+    <div class="lock-container">
+      <div class="lock-icon">
+        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+      </div>
+      <h1 class="lock-title">Thermal Cyclic Test</h1>
+      <p class="lock-subtitle">보안 자료입니다. 접근하려면 인증이 필요합니다.</p>
+      <div class="lock-input-group">
+        <input type="password" class="lock-input" id="lockPassword" placeholder="비밀번호 입력" autocomplete="off">
+      </div>
+      <button class="lock-btn" onclick="checkAccess()">접속하기</button>
+      <p class="lock-error" id="lockError">비밀번호가 올바르지 않습니다.</p>
+    </div>
+  </div>
+  
+  <script>
+    const ACCESS_PASSWORD = 'csl';
+    const ACCESS_KEY = 'thermal_cyclic_access';
+    
+    function checkAccess() {
+      const input = document.getElementById('lockPassword');
+      const error = document.getElementById('lockError');
+      const lockScreen = document.getElementById('lockScreen');
+      const mainContent = document.getElementById('mainContent');
+      
+      if (input.value.trim() === ACCESS_PASSWORD) {
+        sessionStorage.setItem(ACCESS_KEY, 'true');
+        lockScreen.classList.add('hide');
+        setTimeout(() => {
+          lockScreen.style.display = 'none';
+          if (mainContent) mainContent.style.display = 'block';
+        }, 500);
+      } else {
+        input.classList.add('error');
+        error.classList.add('show');
+        input.value = '';
+        setTimeout(() => {
+          input.classList.remove('error');
+          error.classList.remove('show');
+        }, 1500);
+      }
+    }
+    
+    function initLockScreen() {
+      console.log('Initializing lock screen...');
+      const lockScreen = document.getElementById('lockScreen');
+      const mainContent = document.getElementById('mainContent');
+      
+      sessionStorage.removeItem(ACCESS_KEY);
+      
+      lockScreen.style.display = 'flex';
+      if (mainContent) mainContent.style.display = 'none';
+      
+      const input = document.getElementById('lockPassword');
+      if (input) {
+        input.value = '';
+        input.focus();
+        input.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            checkAccess();
+          }
+        });
+      }
+      console.log('Lock screen initialized, display:', lockScreen.style.display);
+    }
+    
+    initLockScreen();
+  </script>
+  
+  <div class="top-banner" id="topBanner">
+    <div class="banner-hover"></div>
+    <div class="menu-item" onclick="showContent('condition', false)">실험 조건</div>
+    <div class="menu-item has-dropdown" id="resultMenu" onmouseenter="showDropdown()" onmouseleave="hideDropdown()">
+      1회 코팅
+      <div class="dropdown" id="resultDropdown">
+        <div class="dropdown-item" onclick="selectView('cycle')">사이클별</div>
+        <div class="dropdown-item" onclick="selectView('sample')">샘플별</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="showContent('future', false)">향후 진행</div>
+    <img src="DRB_W.png" alt="Company Logo" class="banner-logo">
+  </div>
+  
+  <div id="mainContent" style="display: none;">
+    <div class="header" id="header">
+      <div class="header-title">
+        <h1 id="mainTitle">🔬 1회 코팅 결과</h1>
+        <p id="headerSubtitle" contenteditable="false">샘플 A~F의 사이클별 변화를 확인하세요</p>
+      </div>
+      <div class="auth-bar">
+        <input type="password" id="password" placeholder="관리자 비밀번호">
+        <button id="loginBtn">로그인</button>
+        <button id="logoutBtn" class="logout-btn hidden">로그아웃</button>
+        <button id="editModeBtn" class="edit-mode-btn hidden" onclick="toggleEditMode()">편집 모드</button>
+        <button id="exportBtn" class="data-btn hidden" onclick="exportData()">내보내기</button>
+        <button id="importBtn" class="data-btn hidden" onclick="document.getElementById('importInput').click()">가져오기</button>
+        <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(this)">
+      </div>
+    </div>
+    
+    <div class="sub-nav hidden" id="subNav"></div>
+    
+    <div class="main">
+      <div class="content-area" id="conditionContent">
+        <h3 id="conditionTitle" class="editable-title" contenteditable="false">실험 조건</h3>
+        <div class="condition-fullscreen" onclick="editConditionImage()">
+          <img id="conditionImage" src="1.png" alt="실험 조건 이미지">
+        </div>
+      </div>
+      
+      <div class="content-area" id="resultContent">
+        <h2 class="view-title editable-title" id="viewTitle" contenteditable="false">Cycle 1</h2>
+        <div class="samples-grid" id="samplesGrid"></div>
+    </div>
+    
+    <div class="content-area" id="futureContent">
+      <h3 id="futureTitle" class="editable-title" contenteditable="false">향후 진행</h3>
+      <div class="split-layout">
+        <div class="split-left" id="futureImageArea" onclick="editFutureImage()">
+          <img id="futureImage" src="" alt="향후 진행 이미지">
+        </div>
+        <div class="split-right">
+          <div class="editor-container">
+            <div class="editor-toolbar" id="editorToolbar">
+              <button type="button" onclick="execCmd('bold')" title="굵게"><b>B</b></button>
+              <button type="button" onclick="execCmd('italic')" title="기울임"><i>I</i></button>
+              <button type="button" onclick="execCmd('underline')" title="밑줄"><u>U</u></button>
+              <button type="button" onclick="execCmd('strikeThrough')" title="취소선"><s>S</s></button>
+              <div class="toolbar-separator"></div>
+              <select onchange="execCmd('fontName', this.value); this.value='';">
+                <option value="">글꼴</option>
+                <option value="맑은 고딕">맑은 고딕</option>
+                <option value="Malgun Gothic">Malgun Gothic</option>
+                <option value="Arial">Arial</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Presentation">Presentation</option>
+              </select>
+              <select onchange="execCmd('fontSize', this.value); this.value='3';">
+                <option value="">크기</option>
+                <option value="1">작게</option>
+                <option value="3">보통</option>
+                <option value="5">크게</option>
+                <option value="7">아주 크게</option>
+              </select>
+              <div class="toolbar-separator"></div>
+              <button type="button" onclick="execCmd('insertUnorderedList')" title="글머리표">•☰</button>
+              <button type="button" onclick="execCmd('insertOrderedList')" title="번호 매기기">1.</button>
+              <div class="toolbar-separator"></div>
+              <button type="button" onclick="execCmd('justifyLeft')" title="왼쪽 정렬">⬅</button>
+              <button type="button" onclick="execCmd('justifyCenter')" title="가운데 정렬">⬌</button>
+              <button type="button" onclick="execCmd('justifyRight')" title="오른쪽 정렬">➡</button>
+              <div class="toolbar-separator"></div>
+              <button type="button" onclick="execCmd('indent')" title="들여쓰기">→|</button>
+              <button type="button" onclick="execCmd('outdent')" title="내어쓰기">|←</button>
+              <div class="toolbar-separator"></div>
+              <button type="button" onclick="execCmd('removeFormat')" title="서식 지우기">⟲</button>
+              <div class="toolbar-separator"></div>
+              <button type="button" onclick="execCmd('undo')" title="실행 취소">↩</button>
+              <button type="button" onclick="execCmd('redo')" title="다시 실행">↪</button>
+            </div>
+            <div class="editor-content" id="futureTextArea" contenteditable="false" oninput="saveFutureText()"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <input type="file" id="fileInput" accept="image/*">
+  
+  <div class="edit-overlay" id="editOverlay">
+    <div class="edit-modal">
+      <h3 id="editModalTitle">텍스트 편집</h3>
+      <textarea id="editModalText"></textarea>
+      <div class="edit-modal-buttons">
+        <button class="cancel-btn" onclick="closeEditModal()">취소</button>
+        <button class="save-btn" onclick="saveEdit()">저장</button>
+      </div>
+    </div>
+   </div>
+   
+   <div class="edit-mode-banner" id="editModeBanner">
+    편집 모드: 사진 영역 클릭으로 이미지 변경 | 텍스트 영역 직접 입력
+   </div>
+
+  <script>
+    const TOTAL_CYCLES = 8;
+    const SAMPLES = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const ADMIN_PASSWORD = 'admin123';
+    const STORAGE_KEY = 'cycle_experiment_data';
+    const AUTH_KEY = 'cycle_experiment_auth';
+    const CONFIG_KEY = 'cycle_experiment_config';
+    
+    let currentView = 'cycle';
+    let currentCycle = 1;
+    let currentSample = 'A';
+    let isAdmin = false;
+    let isEditMode = false;
+    let experimentData = {};
+    let experimentConfig = {};
+    let editingTarget = null;
+    let draggedCard = null;
+    let selectedCard = null;
+    
+    const SAMPLE_VIEW_MAP = { A: 0, B: 1, C: 2, D: 3, E: 4, F: 5 };
+    const SAMPLE_INDEX_MAP = ['A', 'B', 'C', 'D', 'E', 'F'];
+    
+    const DB_NAME = 'CycleExperimentDB';
+    const DB_VERSION = 1;
+    const STORE_DATA = 'experimentData';
+    const STORE_CONFIG = 'experimentConfig';
+    let db = null;
+    
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        
+        request.onerror = () => {
+          console.error('IndexedDB 열기 실패');
+          reject(request.error);
+        };
+        
+        request.onsuccess = () => {
+          db = request.result;
+          resolve(db);
+        };
+        
+        request.onupgradeneeded = (event) => {
+          const database = event.target.result;
+          if (!database.objectStoreNames.contains(STORE_DATA)) {
+            database.createObjectStore(STORE_DATA, { keyPath: 'id' });
+          }
+          if (!database.objectStoreNames.contains(STORE_CONFIG)) {
+            database.createObjectStore(STORE_CONFIG, { keyPath: 'id' });
+          }
+        };
+      });
+    }
+    
+    function dbGet(storeName) {
+      return new Promise((resolve, reject) => {
+        if (!db) {
+          resolve(null);
+          return;
+        }
+        const transaction = db.transaction(storeName, 'readonly');
+        const store = transaction.objectStore(storeName);
+        const request = store.get('main');
+        request.onsuccess = () => resolve(request.result?.data || null);
+        request.onerror = () => reject(request.error);
+      });
+    }
+    
+    function dbPut(storeName, data) {
+      return new Promise((resolve, reject) => {
+        if (!db) {
+          reject(new Error('DB가 열려있지 않음'));
+          return;
+        }
+        const transaction = db.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.put({ id: 'main', data: data });
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+    
+    async function saveData() {
+      try {
+        await dbPut(STORE_DATA, experimentData);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(experimentData));
+      } catch (err) {
+        console.error('저장 실패:', err);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(experimentData));
+      }
+    }
+    
+    async function saveConfig() {
+      try {
+        await dbPut(STORE_CONFIG, experimentConfig);
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(experimentConfig));
+      } catch (err) {
+        console.error('설정 저장 실패:', err);
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(experimentConfig));
+      }
+    }
+    
+    async function loadExternalData() {
+      try {
+        const response = await fetch('data.json');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('외부 데이터 로드 성공');
+          
+          if (data.experimentData) {
+            experimentData = data.experimentData;
+          }
+          if (data.experimentConfig) {
+            experimentConfig = data.experimentConfig;
+          }
+          
+          // localStorage에도 저장 (나중에 오프라인에서 사용)
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(experimentData));
+          localStorage.setItem(CONFIG_KEY, JSON.stringify(experimentConfig));
+          
+          // IndexedDB에도 저장
+          await dbPut(STORE_DATA, experimentData);
+          await dbPut(STORE_CONFIG, experimentConfig);
+        }
+      } catch (err) {
+        console.log('외부 데이터 없음 (data.json 파일이 같은 폴더에 없음)');
+      }
+    }
+    
+    async function loadAllData() {
+      try {
+        await openDB();
+        let savedData = await dbGet(STORE_DATA);
+        let savedConfig = await dbGet(STORE_CONFIG);
+        
+        if (!savedData) {
+          const localData = localStorage.getItem(STORAGE_KEY);
+          if (localData) {
+            savedData = JSON.parse(localData);
+          }
+        }
+        
+        if (!savedConfig) {
+          const localConfig = localStorage.getItem(CONFIG_KEY);
+          if (localConfig) {
+            savedConfig = JSON.parse(localConfig);
+          }
+        }
+        
+        if (savedData) {
+          experimentData = savedData;
+        } else {
+          for (let c = 1; c <= TOTAL_CYCLES; c++) {
+            experimentData[c] = {};
+            SAMPLES.forEach(s => experimentData[c][s] = null);
+          }
+        }
+        
+        if (savedConfig) {
+          experimentConfig = savedConfig;
+        } else {
+          const localConfig = localStorage.getItem(CONFIG_KEY);
+          if (localConfig) {
+            experimentConfig = JSON.parse(localConfig);
+          } else {
+            experimentConfig = {
+              mainTitle: '🔬 1회 코팅 결과',
+              headerSubtitle: '샘플 A~F의 사이클별 변화를 확인하세요',
+              futureTitle: '향후 진행',
+              conditionImage: null,
+              futureImage: null,
+              futureText: '',
+              sampleText: '',
+              cardOrder: {}
+            };
+          }
+        }
+        
+        applyConfig();
+        return true;
+      } catch (err) {
+        console.error('데이터 로드 실패:', err);
+        return false;
+      }
+    }
+    
+    window.onerror = function(msg, url, line, col, error) {
+      console.error('Global error:', msg, 'at line', line);
+      return false;
+    };
+    
+    async function init() {
+      try {
+        console.log('init called');
+        
+        // GitHub Pages에서 data.json 자동 로드
+        await loadExternalData();
+        
+        const loaded = await loadAllData();
+        if (!loaded) {
+          for (let c = 1; c <= TOTAL_CYCLES; c++) {
+            experimentData[c] = {};
+            SAMPLES.forEach(s => experimentData[c][s] = null);
+          }
+          const localConfig = localStorage.getItem(CONFIG_KEY);
+          if (localConfig) {
+            experimentConfig = JSON.parse(localConfig);
+          } else {
+            experimentConfig = {
+              mainTitle: '🔬 1회 코팅 결과',
+              headerSubtitle: '샘플 A~F의 사이클별 변화를 확인하세요',
+              futureTitle: '향후 진행',
+              conditionImage: null,
+              futureImage: null,
+              futureText: '',
+              sampleText: '',
+              cardOrder: {}
+            };
+          }
+        }
+        
+        applyConfig();
+        checkAuth();
+        showContent('condition');
+        
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const fileInput = document.getElementById('fileInput');
+        
+        if (loginBtn) loginBtn.addEventListener('click', login);
+        if (logoutBtn) logoutBtn.addEventListener('click', logout);
+        if (fileInput) fileInput.addEventListener('change', handleFileUpload);
+        
+        setupEditable();
+        setupPasteHandler();
+        setupEditorEvents();
+        console.log('init complete, isAdmin:', isAdmin);
+      } catch (err) {
+        console.error('Init error:', err);
+      }
+    }
+    
+    function setupEditorEvents() {
+      const editor = document.getElementById('futureTextArea');
+      if (editor) {
+        editor.addEventListener('keyup', updateToolbarState);
+        editor.addEventListener('mouseup', updateToolbarState);
+        editor.addEventListener('input', updateToolbarState);
+      }
+    }
+    
+    let pasteTarget = null;
+    
+    function setupPasteHandler() {
+      document.addEventListener('paste', function(e) {
+        if (!isAdmin || !isEditMode) return;
+        
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData) return;
+        
+        const items = clipboardData.items;
+        if (!items) return;
+        
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type && items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile ? items[i].getAsFile() : null;
+            if (file) {
+              e.preventDefault();
+              handlePastedImage(file);
+              return;
+            }
+          }
+        }
+      });
+    }
+    
+    function handlePastedImage(file) {
+      let targetKey = selectedCard;
+      
+      if (!targetKey) {
+        if (currentView === 'cycle') {
+          for (let s of SAMPLES) {
+            if (!experimentData[currentCycle]?.[s]) {
+              targetKey = s;
+              break;
+            }
+          }
+          if (!targetKey) targetKey = currentSample;
+        } else {
+          for (let c = 1; c <= TOTAL_CYCLES; c++) {
+            if (!experimentData[c]?.[currentSample]) {
+              targetKey = c;
+              break;
+            }
+          }
+          if (!targetKey) targetKey = currentCycle;
+        }
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          if (currentView === 'cycle') {
+            if (!experimentData[currentCycle]) experimentData[currentCycle] = {};
+            experimentData[currentCycle][targetKey] = event.target.result;
+          } else {
+            if (!experimentData[targetKey]) experimentData[targetKey] = {};
+            experimentData[targetKey][currentSample] = event.target.result;
+          }
+          saveData();
+          renderGrid();
+          
+          if (currentView === 'cycle') {
+            const nextIndex = (SAMPLE_VIEW_MAP[targetKey] + 1) % 6;
+            currentSample = SAMPLE_INDEX_MAP[nextIndex];
+          } else {
+            currentCycle = Math.min((targetKey || currentCycle) + 1, TOTAL_CYCLES);
+          }
+          renderSubNav();
+          console.log('이미지 붙여넣기 완료!');
+        } catch (err) {
+          console.error('이미지 저장 실패:', err);
+          alert('이미지 저장에 실패했습니다. 용량을 확인해주세요.');
+        }
+      };
+      reader.onerror = function() {
+        alert('이미지를 읽는 데 실패했습니다.');
+      };
+      reader.readAsDataURL(file);
+    }
+       
+    function applyConfig() {
+      try {
+        const mainTitleEl = document.getElementById('mainTitle');
+        const headerSubtitleEl = document.getElementById('headerSubtitle');
+        const futureTitleEl = document.getElementById('futureTitle');
+        const conditionImageEl = document.getElementById('conditionImage');
+        const futureImageEl = document.getElementById('futureImage');
+        const futureTextAreaEl = document.getElementById('futureTextArea');
+        
+        if (mainTitleEl) mainTitleEl.textContent = experimentConfig.mainTitle || '🔬 1회 코팅 결과';
+        if (headerSubtitleEl) headerSubtitleEl.textContent = experimentConfig.headerSubtitle || '샘플 A~F의 사이클별 변화를 확인하세요';
+        if (futureTitleEl) futureTitleEl.textContent = experimentConfig.futureTitle || '향후 진행';
+        
+        if (conditionImageEl) {
+          conditionImageEl.src = experimentConfig.conditionImage || '1.png';
+        }
+        
+        if (futureImageEl) {
+          if (experimentConfig.futureImage) {
+            futureImageEl.src = experimentConfig.futureImage;
+            futureImageEl.parentElement.classList.remove('empty');
+          } else {
+            futureImageEl.src = '';
+            futureImageEl.parentElement.classList.add('empty');
+          }
+        }
+        if (futureTextAreaEl && experimentConfig.futureText !== undefined) {
+          futureTextAreaEl.innerHTML = experimentConfig.futureText || '';
+        }
+        
+        const sampleTextContentEl = document.getElementById('sampleTextContent');
+        if (sampleTextContentEl && experimentConfig.sampleText !== undefined) {
+          sampleTextContentEl.innerHTML = experimentConfig.sampleText || '';
+        }
+      } catch (err) {
+        console.error('applyConfig error:', err);
+      }
+    }
+     
+    let pendingImageTarget = null;
+    
+    function editConditionImage() {
+      if (!isAdmin) return;
+      pendingImageTarget = 'conditionImage';
+      document.getElementById('fileInput').click();
+    }
+    
+    function editFutureImage() {
+      if (!isAdmin) return;
+      pendingImageTarget = 'futureImage';
+      document.getElementById('fileInput').click();
+    }
+    
+    function execCmd(command, value = null) {
+      if (!isAdmin) return;
+      document.execCommand(command, false, value);
+      document.getElementById('futureTextArea').focus();
+      saveFutureText();
+    }
+    
+    function updateToolbarState() {
+      const toolbar = document.getElementById('editorToolbar');
+      if (!toolbar) return;
+      const buttons = toolbar.querySelectorAll('button');
+      buttons.forEach(btn => {
+        const cmd = btn.getAttribute('onclick')?.match(/execCmd\('(\w+)'/)?.[1];
+        if (cmd) {
+          btn.classList.toggle('active', document.queryCommandState(cmd));
+        }
+      });
+    }
+    
+    function execCmdSample(command, value = null) {
+      if (!isAdmin) return;
+      const editor = document.getElementById('sampleTextContent');
+      if (editor) {
+        editor.focus();
+        document.execCommand(command, false, value);
+        saveSampleText();
+      }
+    }
+    
+    function updateSampleToolbarState() {
+      const toolbar = document.getElementById('sampleEditorToolbar');
+      if (!toolbar) return;
+      const buttons = toolbar.querySelectorAll('button');
+      buttons.forEach(btn => {
+        const cmd = btn.getAttribute('onclick')?.match(/execCmdSample\('(\w+)'/)?.[1];
+        if (cmd) {
+          btn.classList.toggle('active', document.queryCommandState(cmd));
+        }
+      });
+    }
+    
+    function setupSampleEditorEvents() {
+      const editor = document.getElementById('sampleTextContent');
+      if (editor) {
+        editor.addEventListener('keyup', updateSampleToolbarState);
+        editor.addEventListener('mouseup', updateSampleToolbarState);
+        editor.addEventListener('input', updateSampleToolbarState);
+      }
+    }
+    
+    function saveSampleText() {
+      const editor = document.getElementById('sampleTextContent');
+      if (editor) {
+        experimentConfig.sampleText = editor.innerHTML;
+        saveConfig();
+      }
+    }
+    
+    function saveFutureText() {
+      const editor = document.getElementById('futureTextArea');
+      if (editor) {
+        experimentConfig.futureText = editor.innerHTML;
+        saveConfig();
+      }
+    }
+    
+    function setupEditable() {
+      const mainTitle = document.getElementById('mainTitle');
+      const headerSubtitle = document.getElementById('headerSubtitle');
+      const conditionTitle = document.getElementById('conditionTitle');
+      const futureTitle = document.getElementById('futureTitle');
+      const viewTitle = document.getElementById('viewTitle');
+      
+      if (mainTitle) mainTitle.addEventListener('dblclick', () => editText('mainTitle', '메인 제목 편집'));
+      if (headerSubtitle) headerSubtitle.addEventListener('dblclick', () => editText('headerSubtitle', '부제목 편집'));
+      if (conditionTitle) conditionTitle.addEventListener('dblclick', () => editText('conditionTitle', '제목 편집'));
+      if (futureTitle) futureTitle.addEventListener('dblclick', () => editText('futureTitle', '제목 편집'));
+      if (viewTitle) viewTitle.addEventListener('dblclick', () => editText('viewTitle', '제목 편집'));
+    }
+    
+    function editText(targetId, title) {
+      if (!isAdmin) return;
+      const targetEl = document.getElementById(targetId);
+      if (!targetEl) return;
+      editingTarget = targetId;
+      document.getElementById('editModalTitle').textContent = title;
+      document.getElementById('editModalText').value = targetEl.textContent;
+      document.getElementById('editOverlay').classList.add('show');
+    }
+     
+    function closeEditModal() {
+      const overlay = document.getElementById('editOverlay');
+      if (overlay) overlay.classList.remove('show');
+      editingTarget = null;
+    }
+    
+    function saveEdit() {
+      if (editingTarget) {
+        const targetEl = document.getElementById(editingTarget);
+        const editModalText = document.getElementById('editModalText');
+        if (targetEl && editModalText) {
+          targetEl.textContent = editModalText.value;
+          experimentConfig[editingTarget] = editModalText.value;
+          saveConfig();
+        }
+      }
+      closeEditModal();
+    }
+     
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      document.body.classList.toggle('edit-mode', isEditMode);
+      
+      const editModeBtn = document.getElementById('editModeBtn');
+      const editModeBanner = document.getElementById('editModeBanner');
+      const editorContent = document.getElementById('futureTextArea');
+      const editorToolbar = document.getElementById('editorToolbar');
+      const sampleEditorToolbar = document.getElementById('sampleEditorToolbar');
+       
+      if (editModeBtn) editModeBtn.textContent = isEditMode ? '편집 종료' : '편집 모드';
+      if (editModeBanner) editModeBanner.classList.toggle('show', isEditMode);
+      
+      if (editorToolbar) {
+        editorToolbar.querySelectorAll('button, select').forEach(el => {
+          el.disabled = !isAdmin || !isEditMode;
+        });
+      }
+      
+      if (sampleEditorToolbar) {
+        sampleEditorToolbar.querySelectorAll('button, select').forEach(el => {
+          el.disabled = !isAdmin || !isEditMode;
+        });
+      }
+      
+      if (isEditMode) {
+        setupDragAndDrop();
+        setupCardSelection();
+      } else {
+        removeDragAndDrop();
+        removeCardSelection();
+      }
+      
+      const allEditable = document.querySelectorAll('[contenteditable]');
+      allEditable.forEach(el => {
+        el.contentEditable = isAdmin && isEditMode;
+      });
+    }
+    
+    function removeDragAndDrop() {
+      const cards = document.querySelectorAll('.sample-card');
+      cards.forEach(card => {
+        card.draggable = false;
+        card.removeEventListener('dragstart', handleDragStart);
+        card.removeEventListener('dragend', handleDragEnd);
+        card.removeEventListener('dragover', handleDragOver);
+        card.removeEventListener('drop', handleDrop);
+        if (card._selectHandler) {
+          card.removeEventListener('click', card._selectHandler);
+          card._selectHandler = null;
+        }
+      });
+    }
+    
+    function setupCardSelection() {
+      const cards = document.querySelectorAll('.sample-card');
+      cards.forEach(card => {
+        card._selectHandler = function(e) {
+          if (e.target.tagName === 'BUTTON' || e.target.tagName === 'IMG') return;
+          selectCard(card, card.dataset.key);
+        };
+        card.addEventListener('click', card._selectHandler);
+      });
+    }
+    
+    function removeCardSelection() {
+      const cards = document.querySelectorAll('.sample-card');
+      cards.forEach(card => {
+        if (card._selectHandler) {
+          card.removeEventListener('click', card._selectHandler);
+          card._selectHandler = null;
+        }
+        card.classList.remove('selected');
+      });
+      selectedCard = null;
+    }
+    
+    function setupDragAndDrop() {
+      const grid = document.getElementById('samplesGrid');
+      const cards = grid.querySelectorAll('.sample-card');
+      
+      cards.forEach(card => {
+        card.draggable = true;
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+        card.addEventListener('dragover', handleDragOver);
+        card.addEventListener('drop', handleDrop);
+      });
+    }
+    
+    function handleDragStart(e) {
+      draggedCard = this;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+    
+    function handleDragEnd() {
+      this.classList.remove('dragging');
+      document.querySelectorAll('.sample-card').forEach(card => card.classList.remove('drag-over'));
+      draggedCard = null;
+      saveCardOrder();
+    }
+    
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (this !== draggedCard) {
+        document.querySelectorAll('.sample-card').forEach(card => card.classList.remove('drag-over'));
+        this.classList.add('drag-over');
+      }
+    }
+    
+    function handleDrop(e) {
+      e.preventDefault();
+      if (this !== draggedCard) {
+        const grid = document.getElementById('samplesGrid');
+        const cards = [...grid.querySelectorAll('.sample-card')];
+        const fromIndex = cards.indexOf(draggedCard);
+        const toIndex = cards.indexOf(this);
+        
+        if (fromIndex < toIndex) {
+          this.after(draggedCard);
+        } else {
+          this.before(draggedCard);
+        }
+      }
+    }
+    
+    function saveCardOrder() {
+      const grid = document.getElementById('samplesGrid');
+      const cards = [...grid.querySelectorAll('.sample-card')];
+      const order = cards.map(card => card.dataset.sample || card.dataset.cycle);
+      const key = currentView === 'cycle' ? `cycle_${currentCycle}` : `sample_${currentSample}`;
+      experimentConfig.cardOrder[key] = order;
+      saveConfig();
+    }
+    
+    function checkAuth() {
+      const auth = localStorage.getItem(AUTH_KEY);
+      if (auth === 'true') {
+        isAdmin = true;
+        updateAuthUI();
+      }
+    }
+    
+    function login() {
+      try {
+        console.log('login called');
+        const pw = document.getElementById('password').value;
+        console.log('password:', pw);
+        if (pw === ADMIN_PASSWORD) {
+          console.log('password correct');
+          isAdmin = true;
+          localStorage.setItem(AUTH_KEY, 'true');
+          updateAuthUI();
+          document.getElementById('password').value = '';
+        } else {
+          console.log('password incorrect, expected:', ADMIN_PASSWORD);
+          alert('비밀번호가 틀렸습니다.');
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        alert('로그인 중 오류가 발생했습니다: ' + err.message);
+      }
+    }
+    
+    function logout() {
+      isAdmin = false;
+      isEditMode = false;
+      if (document.body.classList.contains('edit-mode')) {
+        document.body.classList.remove('edit-mode');
+      }
+      localStorage.removeItem(AUTH_KEY);
+      updateAuthUI();
+    }
+    
+    function updateAuthUI() {
+      const loginBtn = document.getElementById('loginBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const passwordInput = document.getElementById('password');
+      const editModeBtn = document.getElementById('editModeBtn');
+      const editorToolbar = document.getElementById('editorToolbar');
+      const editorContent = document.getElementById('futureTextArea');
+      const sampleEditorToolbar = document.getElementById('sampleEditorToolbar');
+      const sampleEditorContent = document.getElementById('sampleTextContent');
+      
+      if (loginBtn) loginBtn.classList.toggle('hidden', isAdmin);
+      if (logoutBtn) logoutBtn.classList.toggle('hidden', !isAdmin);
+      if (passwordInput) passwordInput.classList.toggle('hidden', isAdmin);
+      if (editModeBtn) editModeBtn.classList.toggle('hidden', !isAdmin);
+      
+      if (editorToolbar) {
+        editorToolbar.querySelectorAll('button, select').forEach(el => {
+          el.disabled = !isAdmin || !isEditMode;
+        });
+      }
+      
+      if (sampleEditorToolbar) {
+        sampleEditorToolbar.querySelectorAll('button, select').forEach(el => {
+          el.disabled = !isAdmin || !isEditMode;
+        });
+      }
+      
+      if (editorContent) {
+        editorContent.contentEditable = isAdmin && isEditMode;
+      }
+      
+      if (sampleEditorContent) {
+        sampleEditorContent.contentEditable = isAdmin && isEditMode;
+      }
+      
+      const exportBtn = document.getElementById('exportBtn');
+      const importBtn = document.getElementById('importBtn');
+      if (exportBtn) exportBtn.classList.toggle('hidden', !isAdmin);
+      if (importBtn) importBtn.classList.toggle('hidden', !isAdmin);
+      
+      renderGrid();
+    }
+    
+    function exportData() {
+      if (!isAdmin) return;
+      
+      const data = {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        experimentData: experimentData,
+        experimentConfig: experimentConfig
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'data.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      alert('data.json 파일을 내보냈습니다.\nGitHub Pages에 이 파일을 함께 올리면 자동으로 데이터가 로드됩니다.');
+    }
+    
+    function importData(input) {
+      if (!isAdmin) return;
+      
+      const file = input.files[0];
+      if (!file) return;
+      
+      if (!confirm('기존 데이터가 덮어씌워집니다. 계속하시겠습니까?')) {
+        input.value = '';
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          
+          if (data.experimentData) {
+            experimentData = data.experimentData;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(experimentData));
+            await dbPut(STORE_DATA, experimentData);
+          }
+          
+          if (data.experimentConfig) {
+            experimentConfig = data.experimentConfig;
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(experimentConfig));
+            await dbPut(STORE_CONFIG, experimentConfig);
+          }
+          
+          applyConfig();
+          renderGrid();
+          alert('데이터를 성공적으로 가져왔습니다!');
+        } catch (err) {
+          alert('데이터를 불러오는데 실패했습니다: ' + err.message);
+        }
+        input.value = '';
+      };
+      reader.readAsText(file);
+    }
+    
+    function showDropdown() {
+      document.getElementById('resultDropdown').classList.add('show');
+    }
+    
+    function hideDropdown() {
+      document.getElementById('resultDropdown').classList.remove('show');
+    }
+    
+    function showContent(type, showSubNav = true, showHeader = true) {
+      document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
+      const contentEl = document.getElementById(type + 'Content');
+      if (contentEl) contentEl.classList.add('active');
+      
+      const subNav = document.getElementById('subNav');
+      const header = document.getElementById('header');
+      if (subNav) subNav.classList.toggle('hidden', !showSubNav);
+      if (header) header.classList.toggle('hidden', !showHeader);
+    }
+    
+    function selectView(view) {
+      currentView = view;
+      hideDropdown();
+      showContent('result', true, true);
+      renderSubNav();
+      renderGrid();
+    }
+    
+    function renderSubNav() {
+      const nav = document.getElementById('subNav');
+      const viewTitle = document.getElementById('viewTitle');
+      if (!nav) return;
+      
+      nav.classList.remove('hidden');
+      nav.innerHTML = '';
+      
+      if (currentView === 'cycle') {
+        for (let c = 1; c <= TOTAL_CYCLES; c++) {
+          const btn = document.createElement('button');
+          btn.className = `sub-nav-btn ${c === currentCycle ? 'active' : ''}`;
+          btn.textContent = `Cycle ${c}`;
+          btn.onclick = () => selectCycle(c);
+          nav.appendChild(btn);
+        }
+        if (viewTitle) viewTitle.textContent = `Cycle ${currentCycle}`;
+      } else {
+        SAMPLES.forEach(s => {
+          const btn = document.createElement('button');
+          btn.className = `sub-nav-btn ${s === currentSample ? 'active' : ''}`;
+          btn.textContent = `Sample ${s}`;
+          btn.onclick = () => selectSample(s);
+          nav.appendChild(btn);
+        });
+        if (viewTitle) viewTitle.textContent = `Sample ${currentSample}`;
+      }
+    }
+    
+    function selectCycle(c) {
+      currentCycle = c;
+      const viewTitle = document.getElementById('viewTitle');
+      if (viewTitle) viewTitle.textContent = `Cycle ${c}`;
+      renderSubNav();
+      renderGrid();
+    }
+    
+    function selectSample(s) {
+      currentSample = s;
+      const viewTitle = document.getElementById('viewTitle');
+      if (viewTitle) viewTitle.textContent = `Sample ${s}`;
+      renderSubNav();
+      renderGrid();
+    }
+    
+    function renderGrid() {
+      const grid = document.getElementById('samplesGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      
+      let items = [];
+      const key = currentView === 'cycle' ? `cycle_${currentCycle}` : `sample_${currentSample}`;
+      const savedOrder = experimentConfig?.cardOrder?.[key];
+      
+      if (currentView === 'cycle') {
+        if (experimentData[currentCycle]) {
+          items = SAMPLES.map(s => ({ key: s, data: experimentData[currentCycle][s] }));
+        }
+      } else {
+        for (let c = 1; c <= TOTAL_CYCLES; c++) {
+          if (experimentData[c]) {
+            items.push({ key: c, data: experimentData[c][currentSample] });
+          }
+        }
+      }
+      
+      if (savedOrder && savedOrder.length === items.length) {
+        const ordered = [];
+        savedOrder.forEach(k => {
+          const item = items.find(i => i.key == k);
+          if (item) ordered.push(item);
+        });
+        items = ordered;
+      }
+      
+      items.forEach(item => {
+        const title = currentView === 'cycle' ? `Sample ${item.key}` : `Cycle ${item.key}`;
+        const card = createCard(title, item.key, item.data);
+        if (currentView === 'cycle') {
+          card.dataset.sample = item.key;
+        } else {
+          card.dataset.cycle = item.key;
+        }
+        grid.appendChild(card);
+      });
+      
+      const existingSampleEditor = document.getElementById('sampleTextEditor');
+      if (existingSampleEditor) existingSampleEditor.remove();
+      
+      if (currentView === 'sample') {
+        const sampleEditorContainer = document.createElement('div');
+        sampleEditorContainer.id = 'sampleTextEditor';
+        sampleEditorContainer.className = 'sample-text-editor';
+        sampleEditorContainer.innerHTML = `
+          <div class="sample-editor-toolbar" id="sampleEditorToolbar">
+            <button type="button" onclick="execCmdSample('bold')" title="굵게"><b>B</b></button>
+            <button type="button" onclick="execCmdSample('italic')" title="기울임"><i>I</i></button>
+            <button type="button" onclick="execCmdSample('underline')" title="밑줄"><u>U</u></button>
+            <div class="toolbar-separator"></div>
+            <select onchange="execCmdSample('fontName', this.value); this.value='';">
+              <option value="">글꼴</option>
+              <option value="맑은 고딕">맑은 고딕</option>
+              <option value="Malgun Gothic">Malgun Gothic</option>
+              <option value="Arial">Arial</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Georgia">Georgia</option>
+            </select>
+            <select onchange="execCmdSample('fontSize', this.value); this.value='3';">
+              <option value="">크기</option>
+              <option value="1">작게</option>
+              <option value="3">보통</option>
+              <option value="5">크게</option>
+              <option value="7">아주 크게</option>
+            </select>
+            <div class="toolbar-separator"></div>
+            <button type="button" onclick="execCmdSample('insertUnorderedList')" title="글머리표">•☰</button>
+            <button type="button" onclick="execCmdSample('insertOrderedList')" title="번호 매기기">1.</button>
+            <div class="toolbar-separator"></div>
+            <button type="button" onclick="execCmdSample('justifyLeft')" title="왼쪽 정렬">⬅</button>
+            <button type="button" onclick="execCmdSample('justifyCenter')" title="가운데 정렬">⬌</button>
+            <button type="button" onclick="execCmdSample('justifyRight')" title="오른쪽 정렬">➡</button>
+            <div class="toolbar-separator"></div>
+            <button type="button" onclick="execCmdSample('indent')" title="들여쓰기">→|</button>
+            <button type="button" onclick="execCmdSample('outdent')" title="내어쓰기">|←</button>
+            <div class="toolbar-separator"></div>
+            <button type="button" onclick="execCmdSample('removeFormat')" title="서식 지우기">⟲</button>
+          </div>
+          <div class="sample-editor-content" id="sampleTextContent" contenteditable="${isAdmin && isEditMode ? 'true' : 'false'}" oninput="saveSampleText()">${experimentConfig.sampleText || ''}</div>
+        `;
+        grid.parentNode.appendChild(sampleEditorContainer);
+        setupSampleEditorEvents();
+      }
+      
+      if (isEditMode) {
+        setupDragAndDrop();
+      }
+    }
+    
+    function createCard(title, key, data) {
+      const card = document.createElement('div');
+      card.className = 'sample-card';
+      card.dataset.key = key;
+      card.innerHTML = `
+        <div class="drag-handle">⋮⋮</div>
+        <div class="sample-header">${title}</div>
+        <div class="sample-content">
+          ${data ? `<img src="${data}" alt="${title}">` : '<div class="placeholder">사진이 없습니다</div>'}
+        </div>
+        <div class="sample-actions">
+          ${isAdmin ? `
+            <button class="upload-btn" onclick="triggerUpload('${key}')">${data ? '변경' : '업로드'}</button>
+            ${data ? `<button class="delete-btn" onclick="deleteImage('${key}')">삭제</button>` : ''}
+          ` : ''}
+        </div>
+      `;
+      if (isEditMode) {
+        card._selectHandler = function(e) {
+          if (e.target.tagName === 'BUTTON' || e.target.tagName === 'IMG') return;
+          selectCard(card, key);
+        };
+        card.addEventListener('click', card._selectHandler);
+      }
+      return card;
+    }
+    
+    function selectCard(card, key) {
+      document.querySelectorAll('.sample-card.selected').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedCard = key;
+    }
+    
+    function getNextSample() {
+      if (currentView === 'cycle') {
+        const currentIndex = SAMPLE_VIEW_MAP[currentSample] || 0;
+        const nextIndex = (currentIndex + 1) % 6;
+        return SAMPLE_INDEX_MAP[nextIndex];
+      } else {
+        return Math.min(currentCycle + 1, TOTAL_CYCLES);
+      }
+    }
+    
+    let pendingKey = null;
+    
+    function triggerUpload(key) {
+      if (!isAdmin) return;
+      pendingKey = key;
+      document.getElementById('fileInput').click();
+    }
+    
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      if (pendingImageTarget) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          try {
+            if (pendingImageTarget === 'conditionImage') {
+              experimentConfig.conditionImage = event.target.result;
+              const img = document.getElementById('conditionImage');
+              if (img) {
+                img.src = event.target.result;
+                img.parentElement.classList.remove('empty');
+              }
+            } else if (pendingImageTarget === 'futureImage') {
+              experimentConfig.futureImage = event.target.result;
+              const img = document.getElementById('futureImage');
+              if (img) {
+                img.src = event.target.result;
+                img.parentElement.classList.remove('empty');
+              }
+            }
+            saveConfig();
+          } catch (err) {
+            console.error('이미지 저장 실패:', err);
+            alert('이미지 저장에 실패했습니다.');
+          }
+          pendingImageTarget = null;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+        return;
+      }
+      
+      if (!pendingKey) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          if (currentView === 'cycle') {
+            if (!experimentData[currentCycle]) experimentData[currentCycle] = {};
+            experimentData[currentCycle][pendingKey] = event.target.result;
+          } else {
+            if (!experimentData[pendingKey]) experimentData[pendingKey] = {};
+            experimentData[pendingKey][currentSample] = event.target.result;
+          }
+          saveData();
+          renderGrid();
+        } catch (err) {
+          console.error('업로드 실패:', err);
+          alert('이미지 저장에 실패했습니다.');
+        }
+      };
+      reader.onerror = function() {
+        alert('이미지를 읽는 데 실패했습니다.');
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+      pendingKey = null;
+    }
+    
+    function deleteImage(key) {
+      if (!isAdmin) return;
+      if (confirm('이 사진을 삭제하시겠습니까?')) {
+        try {
+          if (currentView === 'cycle') {
+            if (experimentData[currentCycle]) experimentData[currentCycle][key] = null;
+          } else {
+            if (experimentData[key]) experimentData[key][currentSample] = null;
+          }
+          saveData();
+          renderGrid();
+        } catch (err) {
+          console.error('삭제 실패:', err);
+        }
+      }
+    }
+    
+    init();
+  </script>
+</body>
+</html>
